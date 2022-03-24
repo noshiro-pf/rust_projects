@@ -44,6 +44,45 @@ fn create_default_universe() -> Universe {
     }
 }
 
+/**
+ * space ship:
+ *
+ *     _o__o
+ *     o____
+ *     o___o
+ *     oooo_
+ */
+fn create_single_space_ship_universe() -> Universe {
+    let width = 64;
+    let height = 64;
+    let (offset_left, offset_top) = (30, 30);
+
+    let cells = (0..width * height)
+        .map(|i| {
+            let row: u32 = i / width;
+            let col: u32 = i % width;
+            match (row - offset_top, col - offset_left) {
+                (0, 1) => Cell::Alive,
+                (0, 4) => Cell::Alive,
+                (1, 0) => Cell::Alive,
+                (2, 0) => Cell::Alive,
+                (2, 4) => Cell::Alive,
+                (3, 0) => Cell::Alive,
+                (3, 1) => Cell::Alive,
+                (3, 2) => Cell::Alive,
+                (3, 3) => Cell::Alive,
+                _ => Cell::Dead,
+            }
+        })
+        .collect();
+
+    Universe {
+        width,
+        height,
+        cells,
+    }
+}
+
 #[wasm_bindgen]
 impl Universe {
     fn get_index(&self, row: u32, column: u32) -> usize {
@@ -101,7 +140,8 @@ impl Universe {
     }
 
     pub fn new() -> Universe {
-        create_default_universe()
+        // create_default_universe()
+        create_single_space_ship_universe()
     }
 
     pub fn width(&self) -> u32 {
