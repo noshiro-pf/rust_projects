@@ -3,6 +3,7 @@ mod utils;
 use wasm_bindgen::prelude::*;
 // use std::fmt;
 // use rand::prelude::*;
+use bitvec::prelude::*;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -10,13 +11,7 @@ use wasm_bindgen::prelude::*;
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
-#[wasm_bindgen]
-#[repr(u8)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Cell {
-    Dead = 0,
-    Alive = 1,
-}
+pub type Cell = bool;
 
 enum CurrentCells {
     Cell0 = 0,
@@ -27,13 +22,13 @@ enum CurrentCells {
 pub struct Universe {
     width: u32,
     height: u32,
-    cells_0: Vec<Cell>,
-    cells_1: Vec<Cell>,
+    cells_0: BitVec,
+    cells_1: BitVec,
     current_cells_index: CurrentCells,
 }
 
-fn initialize_universe_base(width: u32, height: u32, cells_0: Vec<Cell>) -> Universe {
-    let cells_1 = (0..width * height).map(|_| Cell::Dead).collect();
+fn initialize_universe_base(width: u32, height: u32, cells_0: BitVec) -> Universe {
+    let cells_1: BitVec = (0..width * height).map(|_| false).collect();
 
     Universe {
         width,
@@ -48,14 +43,8 @@ fn create_default_universe() -> Universe {
     let width = 64;
     let height = 64;
 
-    let cells_0 = (0..width * height)
-        .map(|i| {
-            if i % 2 == 0 || i % 7 == 0 {
-                Cell::Alive
-            } else {
-                Cell::Dead
-            }
-        })
+    let cells_0: BitVec = (0..width * height)
+        .map(|i| i % 2 == 0 || i % 7 == 0)
         .collect();
 
     initialize_universe_base(width, height, cells_0)
@@ -74,21 +63,21 @@ fn create_single_space_ship_universe() -> Universe {
     let height = 64;
     let (offset_left, offset_top) = (30, 30);
 
-    let cells_0 = (0..width * height)
+    let cells_0: BitVec = (0..width * height)
         .map(|i| {
             let row: u32 = i / width;
             let col: u32 = i % width;
             match (row - offset_top, col - offset_left) {
-                (0, 1) => Cell::Alive,
-                (0, 4) => Cell::Alive,
-                (1, 0) => Cell::Alive,
-                (2, 0) => Cell::Alive,
-                (2, 4) => Cell::Alive,
-                (3, 0) => Cell::Alive,
-                (3, 1) => Cell::Alive,
-                (3, 2) => Cell::Alive,
-                (3, 3) => Cell::Alive,
-                _ => Cell::Dead,
+                (0, 1) => true,
+                (0, 4) => true,
+                (1, 0) => true,
+                (2, 0) => true,
+                (2, 4) => true,
+                (3, 0) => true,
+                (3, 1) => true,
+                (3, 2) => true,
+                (3, 3) => true,
+                _ => false,
             }
         })
         .collect();
@@ -100,14 +89,8 @@ fn create_random_universe() -> Universe {
     let width = 64;
     let height = 64;
 
-    let cells_0 = (0..width * height)
-        .map(|_| {
-            if js_sys::Math::random() >= 0.5 {
-                Cell::Alive
-            } else {
-                Cell::Dead
-            }
-        })
+    let cells_0: BitVec = (0..width * height)
+        .map(|_| js_sys::Math::random() >= 0.5)
         .collect();
 
     initialize_universe_base(width, height, cells_0)
@@ -126,14 +109,14 @@ impl Universe {
         self.current_cells()[self.get_index(row_as_torus, col_as_torus)]
     }
 
-    fn current_cells(&self) -> &Vec<Cell> {
+    fn current_cells(&self) -> &BitVec {
         match self.current_cells_index {
             CurrentCells::Cell0 => &self.cells_0,
             CurrentCells::Cell1 => &self.cells_1,
         }
     }
 
-    fn next_cells(&mut self) -> &mut Vec<Cell> {
+    fn next_cells(&mut self) -> &mut BitVec {
         match self.current_cells_index {
             CurrentCells::Cell0 => &mut self.cells_1,
             CurrentCells::Cell1 => &mut self.cells_0,
@@ -141,7 +124,7 @@ impl Universe {
     }
 
     fn set_next_cell(&mut self, idx: usize, value: Cell) {
-        self.next_cells()[idx] = value;
+        self.next_cells().set(idx, value);
     }
 
     fn increment_current_cells_index(&mut self) {
@@ -177,8 +160,8 @@ impl Universe {
         .iter()
         .fold(0, |sum, (r, c)| {
             sum + match self.get_cell(*r, *c) {
-                Cell::Alive => 1,
-                Cell::Dead => 0,
+                true => 1,
+                false => 0,
             }
         })
     }
@@ -193,16 +176,16 @@ impl Universe {
                 let next_cell = match (cell, live_neighbors) {
                     // Rule 1: Any live cell with fewer than two live neighbours
                     // dies, as if caused by underpopulation.
-                    (Cell::Alive, x) if x < 2 => Cell::Dead,
+                    (true, x) if x < 2 => false,
                     // Rule 2: Any live cell with two or three live neighbours
                     // lives on to the next generation.
-                    (Cell::Alive, 2) | (Cell::Alive, 3) => Cell::Alive,
+                    (true, 2) | (true, 3) => true,
                     // Rule 3: Any live cell with more than three live
                     // neighbours dies, as if by overpopulation.
-                    (Cell::Alive, x) if x > 3 => Cell::Dead,
+                    (true, x) if x > 3 => false,
                     // Rule 4: Any dead cell with exactly three live neighbours
                     // becomes a live cell, as if by reproduction.
-                    (Cell::Dead, 3) => Cell::Alive,
+                    (false, 3) => true,
                     // All other cells remain in the same state.
                     (otherwise, _) => otherwise,
                 };
@@ -228,7 +211,7 @@ impl Universe {
         self.height
     }
 
-    pub fn cells(&self) -> *const Cell {
-        self.current_cells().as_ptr()
+    pub fn cells(&self) -> *const usize {
+        self.current_cells().as_raw_slice().as_ptr()
     }
 }

@@ -1,5 +1,5 @@
 import { memory } from 'wasm-game-of-life/wasm_game_of_life_bg.wasm'; // this should be placed at the begining of imports
-import { Universe, Cell } from 'wasm-game-of-life/wasm_game_of_life';
+import { Universe } from 'wasm-game-of-life/wasm_game_of_life';
 
 const CELL_SIZE = 5; // px
 const GRID_COLOR = '#CCCCCC';
@@ -37,7 +37,7 @@ const drawCellsImpl = (
   getIndex: (row: number, column: number) => number
 ) => {
   const cellsPtr = universe.cells();
-  const cells = new Uint8Array(memory.buffer, cellsPtr, width * height);
+  const cells = new Uint8Array(memory.buffer, cellsPtr, (width * height) / 8);
 
   ctx.beginPath();
 
@@ -45,7 +45,7 @@ const drawCellsImpl = (
     for (let col = 0; col < width; col++) {
       const idx = getIndex(row, col);
 
-      ctx.fillStyle = cells[idx] === Cell.Dead ? DEAD_COLOR : ALIVE_COLOR;
+      ctx.fillStyle = bitIsSet(idx, cells) ? ALIVE_COLOR : DEAD_COLOR;
 
       ctx.fillRect(
         col * (CELL_SIZE + 1) + 1,
@@ -57,6 +57,13 @@ const drawCellsImpl = (
   }
 
   ctx.stroke();
+};
+
+const bitIsSet = (n: number, arr: Uint8Array): boolean => {
+  const byte = Math.floor(n / 8);
+  const mask = 1 << n % 8;
+  const e = arr[byte];
+  return e === undefined ? false : (e & mask) === mask;
 };
 
 const main = () => {
