@@ -18,17 +18,37 @@ pub enum Cell {
     Alive = 1,
 }
 
+enum CurrentCells {
+    Cell0 = 0,
+    Cell1 = 1,
+}
+
 #[wasm_bindgen]
 pub struct Universe {
     width: u32,
     height: u32,
-    cells: Vec<Cell>,
+    cells_0: Vec<Cell>,
+    cells_1: Vec<Cell>,
+    current_cells_index: CurrentCells,
+}
+
+fn initialize_universe_base(width: u32, height: u32, cells_0: Vec<Cell>) -> Universe {
+    let cells_1 = (0..width * height).map(|_| Cell::Dead).collect();
+
+    Universe {
+        width,
+        height,
+        cells_0,
+        cells_1,
+        current_cells_index: CurrentCells::Cell0,
+    }
 }
 
 fn create_default_universe() -> Universe {
     let width = 64;
     let height = 64;
-    let cells = (0..width * height)
+
+    let cells_0 = (0..width * height)
         .map(|i| {
             if i % 2 == 0 || i % 7 == 0 {
                 Cell::Alive
@@ -38,11 +58,7 @@ fn create_default_universe() -> Universe {
         })
         .collect();
 
-    Universe {
-        width,
-        height,
-        cells,
-    }
+    initialize_universe_base(width, height, cells_0)
 }
 
 /**
@@ -58,7 +74,7 @@ fn create_single_space_ship_universe() -> Universe {
     let height = 64;
     let (offset_left, offset_top) = (30, 30);
 
-    let cells = (0..width * height)
+    let cells_0 = (0..width * height)
         .map(|i| {
             let row: u32 = i / width;
             let col: u32 = i % width;
@@ -77,18 +93,14 @@ fn create_single_space_ship_universe() -> Universe {
         })
         .collect();
 
-    Universe {
-        width,
-        height,
-        cells,
-    }
+    initialize_universe_base(width, height, cells_0)
 }
 
 fn create_random_universe() -> Universe {
     let width = 64;
     let height = 64;
 
-    let cells = (0..width * height)
+    let cells_0 = (0..width * height)
         .map(|_| {
             if js_sys::Math::random() >= 0.5 {
                 Cell::Alive
@@ -98,11 +110,7 @@ fn create_random_universe() -> Universe {
         })
         .collect();
 
-    Universe {
-        width,
-        height,
-        cells,
-    }
+    initialize_universe_base(width, height, cells_0)
 }
 
 #[wasm_bindgen]
@@ -115,7 +123,32 @@ impl Universe {
         let row_as_torus = (self.height + row) % self.height;
         let col_as_torus = (self.width + column) % self.width;
 
-        self.cells[self.get_index(row_as_torus, col_as_torus)]
+        self.current_cells()[self.get_index(row_as_torus, col_as_torus)]
+    }
+
+    fn current_cells(&self) -> &Vec<Cell> {
+        match self.current_cells_index {
+            CurrentCells::Cell0 => &self.cells_0,
+            CurrentCells::Cell1 => &self.cells_1,
+        }
+    }
+
+    fn next_cells(&mut self) -> &mut Vec<Cell> {
+        match self.current_cells_index {
+            CurrentCells::Cell0 => &mut self.cells_1,
+            CurrentCells::Cell1 => &mut self.cells_0,
+        }
+    }
+
+    fn set_next_cell(&mut self, idx: usize, value: Cell) {
+        self.next_cells()[idx] = value;
+    }
+
+    fn increment_current_cells_index(&mut self) {
+        self.current_cells_index = match self.current_cells_index {
+            CurrentCells::Cell0 => CurrentCells::Cell1,
+            CurrentCells::Cell1 => CurrentCells::Cell0,
+        }
     }
 
     fn live_neighbor_count(&self, row: u32, column: u32) -> u8 {
@@ -151,12 +184,10 @@ impl Universe {
     }
 
     pub fn tick(&mut self) {
-        let mut next = self.cells.clone();
-
         for row in 0..self.height {
             for col in 0..self.width {
                 let idx = self.get_index(row, col);
-                let cell = self.cells[idx];
+                let cell = self.current_cells()[idx];
                 let live_neighbors = self.live_neighbor_count(row, col);
 
                 let next_cell = match (cell, live_neighbors) {
@@ -176,11 +207,11 @@ impl Universe {
                     (otherwise, _) => otherwise,
                 };
 
-                next[idx] = next_cell;
+                self.set_next_cell(idx, next_cell);
             }
         }
 
-        self.cells = next;
+        self.increment_current_cells_index();
     }
 
     pub fn new() -> Universe {
@@ -198,6 +229,6 @@ impl Universe {
     }
 
     pub fn cells(&self) -> *const Cell {
-        self.cells.as_ptr()
+        self.current_cells().as_ptr()
     }
 }
