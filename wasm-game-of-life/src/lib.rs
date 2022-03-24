@@ -2,6 +2,7 @@ mod utils;
 
 use wasm_bindgen::prelude::*;
 // use std::fmt;
+// use rand::prelude::*;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -83,6 +84,27 @@ fn create_single_space_ship_universe() -> Universe {
     }
 }
 
+fn create_random_universe() -> Universe {
+    let width = 64;
+    let height = 64;
+
+    let cells = (0..width * height)
+        .map(|_| {
+            if js_sys::Math::random() >= 0.5 {
+                Cell::Alive
+            } else {
+                Cell::Dead
+            }
+        })
+        .collect();
+
+    Universe {
+        width,
+        height,
+        cells,
+    }
+}
+
 #[wasm_bindgen]
 impl Universe {
     fn get_index(&self, row: u32, column: u32) -> usize {
@@ -141,7 +163,8 @@ impl Universe {
 
     pub fn new() -> Universe {
         // create_default_universe()
-        create_single_space_ship_universe()
+        // create_single_space_ship_universe()
+        create_random_universe()
     }
 
     pub fn width(&self) -> u32 {
