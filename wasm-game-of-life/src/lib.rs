@@ -111,21 +111,43 @@ impl Universe {
         (row * self.width + column) as usize
     }
 
-    fn live_neighbor_count(&self, row: u32, column: u32) -> u8 {
-        let mut count = 0;
-        for delta_row in [self.height - 1, 0, 1].iter().cloned() {
-            for delta_col in [self.width - 1, 0, 1].iter().cloned() {
-                if delta_row == 0 && delta_col == 0 {
-                    continue;
-                }
+    fn get_cell(&self, row: u32, column: u32) -> Cell {
+        let row_as_torus = (self.height + row) % self.height;
+        let col_as_torus = (self.width + column) % self.width;
 
-                let neighbor_row = (row + delta_row) % self.height;
-                let neighbor_col = (column + delta_col) % self.width;
-                let idx = self.get_index(neighbor_row, neighbor_col);
-                count += self.cells[idx] as u8;
+        self.cells[self.get_index(row_as_torus, col_as_torus)]
+    }
+
+    fn live_neighbor_count(&self, row: u32, column: u32) -> u8 {
+        /*
+         * neighbor cells
+         *
+         *  +---+---+---+
+         *  | * | * | * |
+         *  +---+---+---+
+         *  | * |   | * |
+         *  +---+---+---+
+         *  | * | * | * |
+         *  +---+---+---+
+         */
+        [
+            // メモ： row, column を入れないと -1 が u32 にならないので却って面倒になる
+            (row - 1, column - 1),
+            (row - 1, column + 0),
+            (row - 1, column + 1),
+            (row + 0, column + 1),
+            (row + 0, column - 1),
+            (row + 1, column - 1),
+            (row + 1, column + 0),
+            (row + 1, column + 1),
+        ]
+        .iter()
+        .fold(0, |sum, (r, c)| {
+            sum + match self.get_cell(*r, *c) {
+                Cell::Alive => 1,
+                Cell::Dead => 0,
             }
-        }
-        count
+        })
     }
 
     pub fn tick(&mut self) {
@@ -163,8 +185,8 @@ impl Universe {
 
     pub fn new() -> Universe {
         // create_default_universe()
-        // create_single_space_ship_universe()
-        create_random_universe()
+        create_single_space_ship_universe()
+        // create_random_universe()
     }
 
     pub fn width(&self) -> u32 {
