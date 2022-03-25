@@ -67,18 +67,17 @@ fn create_single_space_ship_universe() -> Universe {
         .map(|i| {
             let row: u32 = i / width;
             let col: u32 = i % width;
-            match (row - offset_top, col - offset_left) {
-                (0, 1) => true,
-                (0, 4) => true,
-                (1, 0) => true,
-                (2, 0) => true,
-                (2, 4) => true,
-                (3, 0) => true,
-                (3, 1) => true,
-                (3, 2) => true,
-                (3, 3) => true,
-                _ => false,
-            }
+            let (a, b) = (row - offset_top, col - offset_left);
+            false
+                || (a, b) == (0, 1)
+                || (a, b) == (0, 4)
+                || (a, b) == (1, 0)
+                || (a, b) == (2, 0)
+                || (a, b) == (2, 4)
+                || (a, b) == (3, 0)
+                || (a, b) == (3, 1)
+                || (a, b) == (3, 2)
+                || (a, b) == (3, 3)
         })
         .collect();
 
