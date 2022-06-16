@@ -1,4 +1,6 @@
 import { memory } from 'wasm-game-of-life/wasm_game_of_life_bg.wasm'; // this should be placed at the begining of imports
+import 'wasm-game-of-life/wasm_game_of_life_bg.wasm';
+import 'wasm-game-of-life/wasm_game_of_life_bg.js';
 import { Universe } from 'wasm-game-of-life/wasm_game_of_life';
 import { getBit } from './utils';
 
