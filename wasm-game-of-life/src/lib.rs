@@ -206,20 +206,20 @@ impl Universe {
   /// Set the width of the universe.
   ///
   /// Resets all cells to the dead state.
-  pub fn set_width(&mut self, width: u32) {
-    self.width = width;
-    self.cells_0 = (0..width * self.height).map(|_i| false).collect();
-    self.cells_1 = (0..width * self.height).map(|_i| false).collect();
-  }
+  // pub fn set_width(&mut self, width: u32) {
+  //   self.width = width;
+  //   self.cells_0 = (0..width * self.height).map(|_i| false).collect();
+  //   self.cells_1 = (0..width * self.height).map(|_i| false).collect();
+  // }
 
-  /// Set the height of the universe.
-  ///
-  /// Resets all cells to the dead state.
-  pub fn set_height(&mut self, height: u32) {
-    self.height = height;
-    self.cells_0 = (0..self.width * height).map(|_i| false).collect();
-    self.cells_1 = (0..self.width * height).map(|_i| false).collect();
-  }
+  // /// Set the height of the universe.
+  // ///
+  // /// Resets all cells to the dead state.
+  // pub fn set_height(&mut self, height: u32) {
+  //   self.height = height;
+  //   self.cells_0 = (0..self.width * height).map(|_i| false).collect();
+  //   self.cells_1 = (0..self.width * height).map(|_i| false).collect();
+  // }
 
   pub fn width(&self) -> u32 {
     self.width
