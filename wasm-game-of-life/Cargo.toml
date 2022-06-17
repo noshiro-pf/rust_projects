@@ -1,5 +1,5 @@
 [package]
-name = "wasm-game-of-life"
+name = "wasm-game-of-life-noshiro-pf"
 version = "0.1.0"
 authors = ["noshiro-pf <noshiro.pf@gmail.com>"]
 edition = "2018"
